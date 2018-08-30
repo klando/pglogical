@@ -39,3 +39,18 @@ RETURNS record STRICT STABLE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_show_re
 CREATE FUNCTION pglogical.show_repset_table_info_by_target(nsptarget name, reltarget name, repsets text[], OUT relid oid, OUT nspname text,
 	OUT relname text, OUT att_list text[], OUT has_row_filter boolean, OUT nsptarget text, OUT reltarget text)
 RETURNS record STRICT STABLE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_show_repset_table_info_by_target';
+
+CREATE TYPE pglogical.sync_struct_enum
+       AS ENUM ('none', 'all');
+
+DROP FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
+    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
+    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0');
+CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
+    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure pglogical.sync_struct_enum = 'none',
+    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
+RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
+CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
+    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
+    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
+RETURNS oid STRICT VOLATILE LANGUAGE SQL AS 'select oid from pglogical.create_subscription($1,$2,$3, case when $4 is true then ''all'' else ''none'' end ,$5,$6,$7)';
