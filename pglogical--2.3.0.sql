@@ -255,7 +255,7 @@ CREATE FUNCTION pglogical.xact_commit_timestamp_origin("xid" xid, OUT "timestamp
 RETURNS record RETURNS NULL ON NULL INPUT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_xact_commit_timestamp_origin';
 
 CREATE TYPE pglogical.sync_struct_enum
-       AS ENUM ('none', 'all');
+       AS ENUM ('none', 'all', 'relations_only');
 
 CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
     replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure pglogical.sync_struct_enum = 'none',

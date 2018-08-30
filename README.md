@@ -205,10 +205,10 @@ Nodes can be added and removed dynamically using the SQL interfaces.
 ### Subscription management
 
 - `pglogical.create_subscription(subscription_name name, provider_dsn text,
-  replication_sets text[], synchronize_structure enum(none,all),
+  replication_sets text[], synchronize_structure enum(none,all,relations_only),
   synchronize_data boolean, forward_origins text[], apply_delay interval)`
   Creates a subscription from current node to the provider node, with option to
-  synchronize structure. Command does not block, just initiates
+  synchronize part or all the structure. Command does not block, just initiates
   the action.
 
   Parameters:
@@ -217,8 +217,9 @@ Nodes can be added and removed dynamically using the SQL interfaces.
   - `replication_sets` - array of replication sets to subscribe to, these must
     already exist, default is "{default,default_insert_only,ddl_sql}"
   - `synchronize_structure` - specifies if to synchronize structure from
-    provider to the subscriber, default `off`. `all` for all objects
-    (boolean true/false still accepted for all/none but should be considered deprecated).
+    provider to the subscriber, default `off`. `all` for all objects, `relations_only`
+    for replicated tables and sequences only. (boolean true/false still accepted
+    for all/none but should be considered deprecated).
   - `synchronize_data` - specifies if to synchronize data from provider to
     the subscriber, default true
   - `forward_origins` - array of origin names to forward, currently only

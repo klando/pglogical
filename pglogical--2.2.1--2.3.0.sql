@@ -41,7 +41,7 @@ CREATE FUNCTION pglogical.show_repset_table_info_by_target(nsptarget name, relta
 RETURNS record STRICT STABLE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_show_repset_table_info_by_target';
 
 CREATE TYPE pglogical.sync_struct_enum
-       AS ENUM ('none', 'all');
+       AS ENUM ('none', 'all', 'relations_only');
 
 DROP FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
     replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
