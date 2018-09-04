@@ -54,9 +54,14 @@ CREATE FUNCTION pglogical.alter_node_drop_interface(node_name name, interface_na
 RETURNS boolean STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_alter_node_drop_interface';
 
 CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
+	    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure text = 'none',
+	    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
+RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
+CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
     replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
     synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
-RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
+RETURNS oid STRICT VOLATILE LANGUAGE SQL AS 'select pglogical.create_subscription($1,$2,$3, case when $4 is true then ''all'' else ''none'' end ,$5,$6,$7)';
+
 CREATE FUNCTION pglogical.drop_subscription(subscription_name name, ifexists boolean DEFAULT false)
 RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_drop_subscription';
 
@@ -253,16 +258,3 @@ RETURNS void RETURNS NULL ON NULL INPUT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME'
 
 CREATE FUNCTION pglogical.xact_commit_timestamp_origin("xid" xid, OUT "timestamp" timestamptz, OUT "roident" oid)
 RETURNS record RETURNS NULL ON NULL INPUT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_xact_commit_timestamp_origin';
-
-CREATE TYPE pglogical.sync_struct_enum
-       AS ENUM ('none', 'all', 'relations_only');
-
-CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
-    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure pglogical.sync_struct_enum = 'none',
-    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
-RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
-
-CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
-    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
-    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
-RETURNS oid STRICT VOLATILE LANGUAGE SQL AS 'select oid from pglogical.create_subscription($1,$2,$3, case when $4 is true then ''all'' else ''none'' end ,$5,$6,$7)';

@@ -40,14 +40,11 @@ CREATE FUNCTION pglogical.show_repset_table_info_by_target(nsptarget name, relta
 	OUT relname text, OUT att_list text[], OUT has_row_filter boolean, OUT nsptarget text, OUT reltarget text)
 RETURNS record STRICT STABLE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_show_repset_table_info_by_target';
 
-CREATE TYPE pglogical.sync_struct_enum
-       AS ENUM ('none', 'all', 'relations_only');
-
 DROP FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
     replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
     synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0');
 CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
-    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure pglogical.sync_struct_enum = 'none',
+    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure text = 'none',
     synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
 RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
 CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
