@@ -113,7 +113,7 @@ dump_structure(PGLogicalSubscription *sub, const char *destfile,
 	CommitTransactionCommand();
 
 	initStringInfo(&command);
-	appendStringInfo(&command, "\"%s\" --snapshot=\"%s\" %s -s -F c -f \"%s\" \"%s\"",
+	appendStringInfo(&command, "\"%s\" --strict-names --snapshot=\"%s\" %s -s -F c -f \"%s\" \"%s\"",
 					 pg_dump, snapshot, schema_filter.data, destfile,
 					 sub->origin_if->dsn);
 
