@@ -25,6 +25,7 @@
 #include "catalog/namespace.h"
 #include "storage/fd.h"
 #include "utils/inval.h"
+#include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "replication/origin.h"
@@ -676,10 +677,27 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 
 		if (!cached_relmeta->is_cached)
 		{
+			char       *nsptarget;
+			char       *reltarget;
+
+			/*
+			 * XXX if nsptarget/reltarget are set before the next function
+			 * (context) then the regression_test "add_table" fails more
+			 * often (because of timeout).
+			 */
 			OutputPluginPrepareWrite(ctx, false);
-			data->api->write_rel(ctx->out, data, relation, att_list);
+			nsptarget = get_namespace_name(relation->rd_rel->relnamespace);
+			if (nsptarget == NULL)
+					elog(ERROR, "cache lookup failed for namespace %u",
+						 relation->rd_rel->relnamespace);
+			reltarget = pstrdup(NameStr(relation->rd_rel->relname));
+
+			data->api->write_rel(ctx->out, data, relation, att_list,
+								 nsptarget, reltarget);
 			OutputPluginWrite(ctx, false);
 			cached_relmeta->is_cached = true;
+			pfree(nsptarget);
+			pfree(reltarget);
 		}
 	}
 
