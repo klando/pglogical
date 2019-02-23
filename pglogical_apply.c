@@ -185,7 +185,11 @@ should_apply_changes_for_rel(const char *nspname, const char *relname)
 				(sync->status != SYNC_STATUS_READY &&
 				 !(sync->status == SYNC_STATUS_SYNCDONE &&
 				   sync->statuslsn <= replorigin_session_origin_lsn)))
-				return false;
+              {
+					  elog(WARNING, "Relation %s.%s is in process of being synchornized",
+						   nspname, relname);
+					  return false;
+              }
 		}
 	}
 
@@ -872,7 +876,7 @@ handle_truncate(QueuedMessage *queued_message)
 	 * TODO: should we error here?
 	 */
 	rv = parse_relation_message(queued_message->message);
-
+	elog(DEBUG2,"TRUNCATE handler %s.%s",rv->schemaname, rv->relname);
 	/* If in list of relations which are being synchronized, skip. */
 	if (!should_apply_changes_for_rel(rv->schemaname, rv->relname))
 		return;
@@ -899,7 +903,7 @@ handle_table_sync(QueuedMessage *queued_message)
 	if (oldsync)
 	{
 		elog(INFO,
-			 "table sync came from queue for table %s.%s which already being synchronized, skipping",
+			 "TRUNCATE table sync came from queue for table %s.%s which already being synchronized, skipping",
 			 rv->schemaname, rv->relname);
 
 		return;
@@ -1067,6 +1071,9 @@ handle_queued_message(HeapTuple msgtup, bool tx_just_started)
 
 	queued_message = queued_message_from_tuple(msgtup);
 
+        //  real    4m35,392s 1 of 28 tests failed. 
+        elog(DEBUG2, "LATCH QUEUE type '%c'",queued_message->message_type);
+
 	switch (queued_message->message_type)
 	{
 		case QUEUE_COMMAND_TYPE_SQL:
@@ -1089,6 +1096,7 @@ handle_queued_message(HeapTuple msgtup, bool tx_just_started)
 			elog(ERROR, "unknown message type '%c'",
 				 queued_message->message_type);
 	}
+        elog(DEBUG2, "LATCH QUEUE SENT type '%c'",queued_message->message_type);
 
 	errcallback_arg.action_name = old_action_name;
 	errcallback_arg.is_ddl_or_drop = false;
@@ -1107,6 +1115,9 @@ replication_handler(StringInfo s)
 	error_context_stack = &errcallback;
 
 	Assert(CurrentMemoryContext == MessageContext);
+
+        // real     1 of 28 tests failed. 
+        elog(DEBUG2, "LATCH START replication handler action of type %c", action);
 
 	switch (action)
 	{
@@ -1145,6 +1156,7 @@ replication_handler(StringInfo s)
 		default:
 			elog(ERROR, "unknown action of type %c", action);
 	}
+        elog(DEBUG2, "LATCH END replication handler action of type %c", action);
 
 	Assert(CurrentMemoryContext == MessageContext);
 
@@ -1185,6 +1197,7 @@ get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
 	*write = InvalidXLogRecPtr;
 	*flush = InvalidXLogRecPtr;
 
+	elog(DEBUG2, "LATCH START get_flush_position: %X", (uint32)local_flush);
 	dlist_foreach_modify(iter, &lsn_mapping)
 	{
 		PGLFlushPosition *pos =
@@ -1212,6 +1225,7 @@ get_flush_position(XLogRecPtr *write, XLogRecPtr *flush)
 		}
 	}
 
+        elog(DEBUG2, "LATCH END get_flush_position_end_true: %s", dlist_is_empty(&lsn_mapping)?"true":"false");
 	return dlist_is_empty(&lsn_mapping);
 }
 
@@ -1310,6 +1324,7 @@ apply_work(PGconn *streamConn)
 	int			fd;
 	char	   *copybuf = NULL;
 	XLogRecPtr	last_received = InvalidXLogRecPtr;
+        elog(DEBUG2, "LATCH START APPLY WORK");
 
 	applyconn = streamConn;
 	fd = PQsocket(applyconn);
@@ -1329,6 +1344,7 @@ apply_work(PGconn *streamConn)
 	{
 		int			rc;
 		int			r;
+                elog(DEBUG2, "LATCH START APPLY WORK LOOP 1");
 
 		/*
 		 * Background workers mustn't call usleep() or any direct equivalent:
@@ -1361,6 +1377,7 @@ apply_work(PGconn *streamConn)
 
 		for (;;)
 		{
+                        elog(DEBUG2, "LATCH START APPLY WORK LOOP 2");
 			if (got_SIGTERM)
 				break;
 
@@ -1402,7 +1419,8 @@ apply_work(PGconn *streamConn)
 				s.cursor = 0;
 
 				c = pq_getmsgbyte(&s);
-
+				elog(DEBUG2, "feedback c: %c",c);
+				/* XLogData message */
 				if (c == 'w')
 				{
 					XLogRecPtr	start_lsn;
@@ -1420,6 +1438,7 @@ apply_work(PGconn *streamConn)
 
 					replication_handler(&s);
 				}
+				/* Primary keepalive message */
 				else if (c == 'k')
 				{
 					XLogRecPtr endpos;
@@ -1448,6 +1467,9 @@ apply_work(PGconn *streamConn)
 
 			/* We must not have fallen out of MessageContext by accident */
 			Assert(CurrentMemoryContext == MessageContext);
+
+                        elog(DEBUG2, "LATCH END APPLY WORK LOOP 2");
+
 		}
 
 		/* confirm all writes at once */
@@ -1470,7 +1492,9 @@ apply_work(PGconn *streamConn)
 		{
 			VALGRIND_DO_ADDED_LEAK_CHECK;
 		}
+                elog(DEBUG2, "LATCH END APPLY WORK LOOP 1");
 	}
+        elog(DEBUG2, "LATCH END APPLY WORK LOOP");
 }
 
 /*

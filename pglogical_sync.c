@@ -556,7 +556,7 @@ copy_table_data(PGconn *origin_conn, PGconn *target_conn,
 	PQclear(res);
 
 	elog(INFO, "finished synchronization of data for table %s.%s",
-		 remoterel->nsptarget, remoterel->reltarget);
+		 remoterel->nspname, remoterel->relname);
 }
 
 /*
@@ -1031,7 +1031,11 @@ pglogical_sync_worker_finish(void)
 	apply = pglogical_apply_find(MyPGLogicalWorker->dboid,
 								 MyApplyWorker->subid);
 	if (pglogical_worker_running(apply))
+	  {
+	    elog(DEBUG2, "SetLatch sync");
+
 		SetLatch(&apply->proc->procLatch);
+	  }
 	LWLockRelease(PGLogicalCtx->lock);
 
 	elog(LOG, "finished sync of table %s.%s for subscriber %s",
@@ -1557,6 +1561,7 @@ get_unsynced_tables(Oid subid)
 	List		   *res = NIL;
 	TupleDesc		tupDesc;
 
+	elog(DEBUG2,"UNSYNC START");
 	rv = makeRangeVar(EXTENSION_NAME, CATALOG_LOCAL_SYNC_STATUS, -1);
 	rel = heap_openrv(rv, RowExclusiveLock);
 	tupDesc = RelationGetDescr(rel);
@@ -1581,6 +1586,7 @@ get_unsynced_tables(Oid subid)
 
 	systable_endscan(scan);
 	heap_close(rel, RowExclusiveLock);
+	elog(DEBUG2,"UNSYNC END");
 
 	return res;
 }
@@ -1762,9 +1768,13 @@ truncate_table(char *nspname, char *relname)
 
 	rv = makeRangeVar(nspname, relname, -1);
 
+	elog(DEBUG2,"TRUNCATE handler 2 %s %s",rv->schemaname, rv->relname);
+
 	relid = RangeVarGetRelid(rv, AccessExclusiveLock, true);
 	if (relid == InvalidOid)
+	  {	elog(DEBUG2,"TRUNCATE handler INVALID %s.%s",rv->schemaname, rv->relname);
 		return;
+	  }
 
 	initStringInfo(&sql);
 	appendStringInfo(&sql, "TRUNCATE TABLE %s",
@@ -1775,6 +1785,8 @@ truncate_table(char *nspname, char *relname)
 	truncate->relations = list_make1(rv);
 	truncate->restart_seqs = false;
 	truncate->behavior = DROP_RESTRICT;
+
+	elog(DEBUG2, "TRUNCATE TABLE %s.%s",rv->schemaname, rv->relname);
 
 	/*
 	 * We use standard_ProcessUtility to process the truncate statement. This

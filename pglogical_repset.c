@@ -536,6 +536,7 @@ get_table_replication_info_by_oid(Oid nodeid, Relation table,
 	systable_endscan(scan);
 	heap_close(repset_rel, RowExclusiveLock);
 	entry->isvalid = true;
+	elog(LOG,"entry.nsptarget: %s entry.reltarget: %s", entry->nsptarget, entry->reltarget);
 	return entry;
 }
 
@@ -1339,7 +1340,7 @@ replication_set_add_table(Oid setid, Oid reloid, List *att_list,
 
 	values[Anum_repset_table_setid - 1] = ObjectIdGetDatum(repset->id);
 	values[Anum_repset_table_reloid - 1] = ObjectIdGetDatum(reloid);
-
+	elog(LOG,"before values");
 	if (list_length(att_list))
 		values[Anum_repset_table_att_list - 1] =
 			PointerGetDatum(strlist_to_textarray(att_list));
@@ -1366,6 +1367,7 @@ replication_set_add_table(Oid setid, Oid reloid, List *att_list,
 		values[Anum_repset_table_reltarget - 1] =
 			CStringGetDatum(RelationGetRelationName(targetrel));
 
+	elog(LOG,"nsp:%s rel:%s", get_namespace_name(RelationGetNamespace(targetrel)), RelationGetRelationName(targetrel));
 	tup = heap_form_tuple(tupDesc, values, nulls);
 
 	/* Insert the tuple to the catalog. */

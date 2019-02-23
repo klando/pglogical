@@ -1823,9 +1823,11 @@ pglogical_queue_truncate(PG_FUNCTION_ARGS)
 	MemoryContext	oldcontext;
 	PGLogicalLocalNode *local_node;
 
+	elog(DEBUG2,"TRUNCATE TRIGGER");
 	/* Return if this function was called from apply process. */
 	if (MyPGLogicalWorker)
 		PG_RETURN_VOID();
+	elog(DEBUG2,"TRUNCATE TRIGGER 2");
 
 	/* Make sure this is being called as an AFTER TRUNCTATE trigger. */
 	if (!CALLED_AS_TRIGGER(fcinfo))
@@ -1845,6 +1847,7 @@ pglogical_queue_truncate(PG_FUNCTION_ARGS)
 	local_node = get_local_node(false, true);
 	if (!local_node)
 		PG_RETURN_VOID();
+	elog(DEBUG2,"TRUNCATE TRIGGER 3");
 
 	/* Make sure the list change survives the trigger call. */
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);

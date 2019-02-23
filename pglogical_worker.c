@@ -68,8 +68,11 @@ handle_sigterm(SIGNAL_ARGS)
 	got_SIGTERM = true;
 
 	if (MyProc)
-		SetLatch(&MyProc->procLatch);
+          {
+            elog(DEBUG2, "SetLatch worker sigterm");
 
+		SetLatch(&MyProc->procLatch);
+          }
 	errno = save_errno;
 }
 
@@ -591,6 +594,7 @@ signal_worker_xact_callback(XactEvent event, void *arg)
 			else if (pglogical_worker_running(w))
 			{
 				w->worker.apply.sync_pending = true;
+                                elog(DEBUG2, "SetLatch xact callback");
 				SetLatch(&w->proc->procLatch);
 			}
 		}
@@ -600,12 +604,16 @@ signal_worker_xact_callback(XactEvent event, void *arg)
 		/* Signal the manager worker, if there's one */
 		w = pglogical_manager_find(MyDatabaseId);
 		if (pglogical_worker_running(w))
+                {
+                        elog(DEBUG2, "SetLatch worker");
 			SetLatch(&w->proc->procLatch);
-
+                }
 		/* and signal the supervisor, for good measure */
 		if (PGLogicalCtx->supervisor)
+                {
+                        elog(DEBUG2, "SetLatch supervisor");
 			SetLatch(&PGLogicalCtx->supervisor->procLatch);
-
+                }
 		LWLockRelease(PGLogicalCtx->lock);
 
 		list_free_deep(signal_workers);

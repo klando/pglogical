@@ -181,10 +181,12 @@ pglogical_finish_truncate(void)
 	ListCell	   *tlc;
 	PGLogicalLocalNode *local_node;
 
+	elog(DEBUG2,"TRUNCATE FINISH");
 	/* If this is not pglogical node, don't do anything. */
 	local_node = get_local_node(false, true);
 	if (!local_node || !list_length(pglogical_truncated_tables))
 		return;
+	elog(DEBUG2,"TRUNCATE FINISH 2");
 
 	foreach (tlc, pglogical_truncated_tables)
 	{
@@ -194,6 +196,7 @@ pglogical_finish_truncate(void)
 
 		/* And now prepare the messages for the queue */
 		reltargets = get_table_replication_sets_targets(local_node->node->id, reloid);
+		elog(DEBUG2,"TRUNCATE FINISH 33 len:%i", reltargets->length);
 
 		/*
 		 * Compute a message for each unique (reloid,nsptarget,reltarget) triplet
