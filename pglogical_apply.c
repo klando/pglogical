@@ -1728,6 +1728,7 @@ process_syncing_tables(XLogRecPtr end_lsn)
 
 					if (pglogical_worker_running(worker))
 						SetLatch(&worker->proc->procLatch);
+					/* TODO add: if (PGLogicalCtx->supervisor) SetLatch(&PGLogicalCtx->supervisor->procLatch); ? */
 					LWLockRelease(PGLogicalCtx->lock);
 
 					if (wait_for_sync_status_change(MyApplyWorker->subid,

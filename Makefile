@@ -114,7 +114,7 @@ else
 # But this is still not ideal.
 regresscheck:
 	$(MKDIR_P) regression_output
-	$(pg_regress_check) \
+	ulimit -c unlimited && $(pg_regress_check) \
 	    --temp-config ./regress-postgresql.conf \
 	    --temp-instance=./tmp_check \
 	    --outputdir=./regression_output \
