@@ -569,7 +569,7 @@ pglogical_change_filter(PGLogicalOutputData *data, Relation relation,
 	}
 
 	/* Normal case - use replication set membership. */
-	tblinfo = get_table_replication_info(data->local_node_id, relation,
+	tblinfo = get_table_replication_info_by_oid(data->local_node_id, relation,
 										 data->replication_sets);
 
 	/* First try filter out by change type. */

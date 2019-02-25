@@ -1888,7 +1888,7 @@ pglogical_node_info(PG_FUNCTION_ARGS)
 }
 
 /*
- * Get replication info about table.
+ * Get replication info about table, by OID.
  *
  * This is called by downstream sync worker on the upstream to obtain
  * info needed to do initial synchronization correctly. Be careful
@@ -1931,7 +1931,7 @@ pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
 	relname = RelationGetRelationName(rel);
 
 	/* Build the replication info for the table. */
-	tableinfo = get_table_replication_info(node->node->id, rel,
+	tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
 										   replication_sets);
 
 	/* Build the column list. */
@@ -2096,7 +2096,7 @@ pglogical_table_data_filtered(PG_FUNCTION_ARGS)
 	replication_sets = get_replication_sets(node->node->id,
 											replication_sets,
 											false);
-	tableinfo = get_table_replication_info(node->node->id, rel,
+	tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
 										   replication_sets);
 
 	/* Prepare executor. */

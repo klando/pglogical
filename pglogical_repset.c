@@ -381,7 +381,7 @@ get_replication_sets(Oid nodeid, List *replication_set_names, bool missing_ok)
 }
 
 PGLogicalTableRepInfo *
-get_table_replication_info(Oid nodeid, Relation table,
+get_table_replication_info_by_oid(Oid nodeid, Relation table,
 						   List *subs_replication_sets)
 {
 	PGLogicalTableRepInfo *entry;

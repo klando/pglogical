@@ -57,7 +57,7 @@ extern List *get_node_replication_sets(Oid nodeid);
 extern List *get_replication_sets(Oid nodeid, List *replication_set_names,
 								  bool missing_ok);
 
-extern PGLogicalTableRepInfo *get_table_replication_info(Oid nodeid,
+extern PGLogicalTableRepInfo *get_table_replication_info_by_oid(Oid nodeid,
 						   Relation table, List *subs_replication_sets);
 
 extern void create_replication_set(PGLogicalRepSet *repset);
