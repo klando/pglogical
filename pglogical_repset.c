@@ -78,11 +78,15 @@ typedef struct RepSetSeqTuple
 {
 	Oid			id;
 	Oid			seqoid;
+	NameData	nsptarget;
+	NameData	seqtarget;
 } RepSetSeqTuple;
 
-#define Natts_repset_seq				2
+#define Natts_repset_seq				4
 #define Anum_repset_seq_setid			1
 #define Anum_repset_seq_seqoid			2
+#define Anum_repset_seq_nsptarget		3
+#define Anum_repset_seq_seqtarget		4
 
 typedef struct RepSetTableTuple
 {
@@ -91,14 +95,18 @@ typedef struct RepSetTableTuple
 #if 0 /* Only for info here. */
 	text		att_list[1];
 	text		row_filter;
+	NameData	nsptarget;
+	NameData	reltarget;
 #endif
 } RepSetTableTuple;
 
-#define Natts_repset_table				4
+#define Natts_repset_table				6
 #define Anum_repset_table_setid			1
 #define Anum_repset_table_reloid		2
 #define Anum_repset_table_att_list	3
 #define Anum_repset_table_row_filter	4
+#define Anum_repset_table_nsptarget		5
+#define Anum_repset_table_reltarget		6
 
 
 #define REPSETTABLEHASH_INITIAL_SIZE 128
@@ -1076,6 +1084,8 @@ replication_set_add_table(Oid setid, Oid reloid, List *att_list,
 	else
 		nulls[Anum_repset_table_row_filter - 1] = true;
 
+	nulls[Anum_repset_table_nsptarget - 1] = true;
+	nulls[Anum_repset_table_reltarget - 1] = true;
 	tup = heap_form_tuple(tupDesc, values, nulls);
 
 	/* Insert the tuple to the catalog. */
@@ -1149,6 +1159,8 @@ replication_set_add_seq(Oid setid, Oid seqoid)
 
 	values[Anum_repset_seq_setid - 1] = ObjectIdGetDatum(repset->id);
 	values[Anum_repset_seq_seqoid - 1] = ObjectIdGetDatum(seqoid);
+	nulls[Anum_repset_seq_nsptarget - 1] = true;
+	nulls[Anum_repset_seq_seqtarget - 1] = true;
 
 	tup = heap_form_tuple(tupDesc, values, nulls);
 
