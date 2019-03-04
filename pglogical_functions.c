@@ -132,6 +132,7 @@ PG_FUNCTION_INFO_V1(pglogical_dependency_check_trigger);
 PG_FUNCTION_INFO_V1(pglogical_gen_slot_name);
 PG_FUNCTION_INFO_V1(pglogical_node_info);
 PG_FUNCTION_INFO_V1(pglogical_show_repset_table_info);
+PG_FUNCTION_INFO_V1(pglogical_show_repset_table_info_by_target);
 PG_FUNCTION_INFO_V1(pglogical_table_data_filtered);
 
 /* Information */
@@ -1892,7 +1893,7 @@ pglogical_node_info(PG_FUNCTION_ARGS)
  */
 static HeapTuple
 table_get_info(TupleDesc rettupdesc, ArrayType *rep_set_names,
-			   Oid reloid)
+			   Oid reloid, RangeVar *target)
 {
 	Relation	rel;
 	List	   *replication_sets;
@@ -1913,11 +1914,24 @@ table_get_info(TupleDesc rettupdesc, ArrayType *rep_set_names,
 	replication_sets = get_replication_sets(node->node->id,
 											replication_sets,
 											false);
-	rel = heap_open(reloid, AccessShareLock);
-	reldesc = RelationGetDescr(rel);
-	/* Build the replication info for the table. */
-	tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
-												  replication_sets);
+	if (reloid == InvalidOid)
+	{
+			/* Build the replication info for the table. */
+			tableinfo = get_table_replication_info_by_target(node->node->id,
+															 target->schemaname,
+															 target->relname,
+															 replication_sets);
+			rel = heap_open(tableinfo->reloid, AccessShareLock);
+			reldesc = RelationGetDescr(rel);
+	}
+	else
+	{
+			rel = heap_open(reloid, AccessShareLock);
+			reldesc = RelationGetDescr(rel);
+			/* Build the replication info for the table. */
+			tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
+														  replication_sets);
+	}
 
 	nspname = get_namespace_name(RelationGetNamespace(rel));
 	relname = RelationGetRelationName(rel);
@@ -1972,13 +1986,47 @@ pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
 {
 	Oid			reloid = PG_GETARG_OID(0);
 	ArrayType  *rep_set_names = PG_GETARG_ARRAYTYPE_P(1);
+	RangeVar   *null = NULL;
 	TupleDesc	rettupdesc;
 
 	/* Build a tuple descriptor for our result type */
 	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
 		elog(ERROR, "return type must be a row type");
 
-	PG_RETURN_DATUM(HeapTupleGetDatum(table_get_info(rettupdesc, rep_set_names, reloid)));
+	PG_RETURN_DATUM(HeapTupleGetDatum(table_get_info(rettupdesc, rep_set_names, reloid, null)));
+}
+
+/*
+ * Get replication info about table, by target name
+ *
+ * This is called by downstream sync worker on the upstream to obtain
+ * info needed to do initial synchronization correctly. Be careful
+ * about changing it, as it must be upward- and downward-compatible.
+ */
+Datum
+pglogical_show_repset_table_info_by_target(PG_FUNCTION_ARGS)
+{
+	ArrayType  *rep_set_names = PG_GETARG_ARRAYTYPE_P(2);
+	RangeVar   *target;
+	Oid		   null = InvalidOid;
+	char	   *nsptarget;
+	char	   *reltarget;
+	TupleDesc	rettupdesc;
+
+	/* Build a tuple descriptor for our result type */
+	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
+
+	if (PG_ARGISNULL(0))
+			elog(ERROR,"Schema target name required");
+	nsptarget = NameStr(*PG_GETARG_NAME(0));
+	if (PG_ARGISNULL(1))
+			elog(ERROR,"Table target name required");
+	reltarget = NameStr(*PG_GETARG_NAME(1));
+
+	target = makeRangeVar(nsptarget, reltarget, -1);
+
+	PG_RETURN_DATUM(HeapTupleGetDatum(table_get_info(rettupdesc, rep_set_names, null, target)));
 }
 
 /*

@@ -51,6 +51,15 @@ typedef struct PGLogicalTableRepInfo
 	char		   *reltarget;			/* relation name to expose */
 } PGLogicalTableRepInfo;
 
+typedef struct PGLogicalRepSetRel
+{
+	Oid		reloid;
+	char	*nsptarget;
+	char	*reltarget;
+	char	*repset_name;
+} PGLogicalRepSetRel;
+
+
 extern PGLogicalRepSet *get_replication_set(Oid setid);
 extern PGLogicalRepSet *get_replication_set_by_name(Oid nodeid,
 													const char *setname,
@@ -59,9 +68,12 @@ extern PGLogicalRepSet *get_replication_set_by_name(Oid nodeid,
 extern List *get_node_replication_sets(Oid nodeid);
 extern List *get_replication_sets(Oid nodeid, List *replication_set_names,
 								  bool missing_ok);
-
+extern List *get_table_replication_sets_targets(Oid nodeid, Oid reloid);
 extern PGLogicalTableRepInfo *get_table_replication_info_by_oid(Oid nodeid,
 						   Relation table, List *subs_replication_sets);
+
+extern PGLogicalTableRepInfo *get_table_replication_info_by_target(Oid nodeid,
+						   char *nsptarget, char *reltarget, List *subs_replication_sets);
 
 extern void create_replication_set(PGLogicalRepSet *repset);
 extern void alter_replication_set(PGLogicalRepSet *repset);
