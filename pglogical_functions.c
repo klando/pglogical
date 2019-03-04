@@ -1888,21 +1888,15 @@ pglogical_node_info(PG_FUNCTION_ARGS)
 }
 
 /*
- * Get replication info about table, by OID.
- *
- * This is called by downstream sync worker on the upstream to obtain
- * info needed to do initial synchronization correctly. Be careful
- * about changing it, as it must be upward- and downward-compatible.
+ * get information where reloid= or reltarget=
  */
-Datum
-pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
+static HeapTuple
+table_get_info(TupleDesc rettupdesc, ArrayType *rep_set_names,
+			   Oid reloid)
 {
-	Oid			reloid = PG_GETARG_OID(0);
- 	ArrayType  *rep_set_names = PG_GETARG_ARRAYTYPE_P(1);
 	Relation	rel;
 	List	   *replication_sets;
 	TupleDesc	reldesc;
-	TupleDesc	rettupdesc;
 	int			i;
 	List	   *att_list = NIL;
 	Datum		values[5];
@@ -1915,25 +1909,20 @@ pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
 
 	node = get_local_node(false, false);
 
-	/* Build a tuple descriptor for our result type */
-	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
-	rettupdesc = BlessTupleDesc(rettupdesc);
-
-	rel = heap_open(reloid, AccessShareLock);
-	reldesc = RelationGetDescr(rel);
 	replication_sets = textarray_to_list(rep_set_names);
 	replication_sets = get_replication_sets(node->node->id,
 											replication_sets,
 											false);
+	rel = heap_open(reloid, AccessShareLock);
+	reldesc = RelationGetDescr(rel);
+	/* Build the replication info for the table. */
+	tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
+												  replication_sets);
 
 	nspname = get_namespace_name(RelationGetNamespace(rel));
 	relname = RelationGetRelationName(rel);
 
-	/* Build the replication info for the table. */
-	tableinfo = get_table_replication_info_by_oid(node->node->id, rel,
-										   replication_sets);
-
+	rettupdesc = BlessTupleDesc(rettupdesc);
 	/* Build the column list. */
 	for (i = 0; i < reldesc->natts; i++)
 	{
@@ -1964,9 +1953,31 @@ pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
 
 	heap_close(rel, NoLock);
 
-	PG_RETURN_DATUM(HeapTupleGetDatum(htup));
+	return htup;
 }
 
+/*
+ * Get replication info about table, by OID.
+ *
+ * This was called by downstream sync worker on the upstream to obtain
+ * info needed to do initial synchronization correctly.
+ *
+ * It will return only tables with same name and schema on subscriber and
+ * provider
+ */
+Datum
+pglogical_show_repset_table_info(PG_FUNCTION_ARGS)
+{
+	Oid			reloid = PG_GETARG_OID(0);
+	ArrayType  *rep_set_names = PG_GETARG_ARRAYTYPE_P(1);
+	TupleDesc	rettupdesc;
+
+	/* Build a tuple descriptor for our result type */
+	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
+
+	PG_RETURN_DATUM(HeapTupleGetDatum(table_get_info(rettupdesc, rep_set_names, reloid)));
+}
 
 /*
  * Decide if to return tuple or not.
