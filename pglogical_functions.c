@@ -1899,8 +1899,8 @@ table_get_info(TupleDesc rettupdesc, ArrayType *rep_set_names,
 	TupleDesc	reldesc;
 	int			i;
 	List	   *att_list = NIL;
-	Datum		values[5];
-	bool		nulls[5];
+	Datum		values[7];
+	bool		nulls[7];
 	char	   *nspname;
 	char	   *relname;
 	HeapTuple	htup;
@@ -1948,6 +1948,8 @@ table_get_info(TupleDesc rettupdesc, ArrayType *rep_set_names,
 	values[2] = CStringGetTextDatum(relname);
 	values[3] = PointerGetDatum(strlist_to_textarray(att_list));
 	values[4] = BoolGetDatum(list_length(tableinfo->row_filter) > 0);
+	values[5] = CStringGetTextDatum(tableinfo->nsptarget);
+	values[6] = CStringGetTextDatum(tableinfo->reltarget);
 
 	htup = heap_form_tuple(rettupdesc, values, nulls);
 

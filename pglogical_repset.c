@@ -224,6 +224,8 @@ repset_relcache_invalidate_callback(Datum arg, Oid reloid)
 			if (list_length(entry->row_filter))
 				list_free_deep(entry->row_filter);
 			entry->row_filter = NIL;
+			entry->nsptarget = NULL;
+			entry->reltarget = NULL;
 		}
 	}
 	else if ((entry = hash_search(RepSetTableHash, &reloid,
@@ -236,6 +238,8 @@ repset_relcache_invalidate_callback(Datum arg, Oid reloid)
 		if (list_length(entry->row_filter))
 			list_free_deep(entry->row_filter);
 		entry->row_filter = NIL;
+		entry->nsptarget = NULL;
+		entry->reltarget = NULL;
 	}
 }
 
@@ -420,6 +424,8 @@ get_table_replication_info_by_oid(Oid nodeid, Relation table,
 	entry->replicate_delete = false;
 	entry->att_list = NULL;
 	entry->row_filter = NIL;
+	entry->nsptarget = get_namespace_name(RelationGetNamespace(table));
+	entry->reltarget = RelationGetRelationName(table);
 
 	/*
 	 * Check for match between table's replication sets and the subscription
@@ -511,6 +517,18 @@ get_table_replication_info_by_oid(Oid nodeid, Relation table,
 					entry->row_filter = lappend(entry->row_filter, row_filter);
 					MemoryContextSwitchTo(olctx);
 				}
+
+                /* Add namespace target. */
+				d = heap_getattr(tuple, Anum_repset_table_nsptarget,
+								 repset_rel_desc, &isnull);
+				if (!isnull)
+						entry->nsptarget = pstrdup(NameStr(*DatumGetName(d)));
+
+				/* Add relation target. */
+				d = heap_getattr(tuple, Anum_repset_table_reltarget,
+								 repset_rel_desc, &isnull);
+				if (!isnull)
+						entry->reltarget = pstrdup(NameStr(*DatumGetName(d)));
 			}
 		}
 	}

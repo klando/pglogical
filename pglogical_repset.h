@@ -46,6 +46,9 @@ typedef struct PGLogicalTableRepInfo
 										   otherwise each replicated column
 										   is a member */
 	List		   *row_filter;			/* compiled row_filter nodes */
+
+	char		   *nsptarget;			/* namespace name to expose */
+	char		   *reltarget;			/* relation name to expose */
 } PGLogicalTableRepInfo;
 
 extern PGLogicalRepSet *get_replication_set(Oid setid);
