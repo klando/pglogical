@@ -677,6 +677,7 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 
 		if (!cached_relmeta->is_cached)
 		{
+			PGLogicalTableRepInfo *tblinfo;
 			char       *nsptarget;
 			char       *reltarget;
 
@@ -686,11 +687,22 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 			 * often (because of timeout).
 			 */
 			OutputPluginPrepareWrite(ctx, false);
-			nsptarget = get_namespace_name(relation->rd_rel->relnamespace);
-			if (nsptarget == NULL)
-					elog(ERROR, "cache lookup failed for namespace %u",
-						 relation->rd_rel->relnamespace);
-			reltarget = pstrdup(NameStr(relation->rd_rel->relname));
+			if (RelationGetRelid(relation) == get_queue_table_oid()
+				|| RelationGetRelid(relation) == get_replication_set_rel_oid())
+			{
+					nsptarget = get_namespace_name(RelationGetNamespace(relation));
+					reltarget = pstrdup(RelationGetRelationName(relation));
+					if (nsptarget == NULL)
+							elog(ERROR, "cache lookup failed for namespace %u",
+								 relation->rd_rel->relnamespace);
+			}
+			else
+			{
+					tblinfo = get_table_replication_info_by_oid(data->local_node_id, relation,
+																data->replication_sets);
+					nsptarget = pstrdup(tblinfo->nsptarget);
+					reltarget = pstrdup(tblinfo->reltarget);
+			}
 
 			data->api->write_rel(ctx->out, data, relation, att_list,
 								 nsptarget, reltarget);
