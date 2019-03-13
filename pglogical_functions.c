@@ -822,8 +822,8 @@ pglogical_alter_subscription_synchronize(PG_FUNCTION_ARGS)
 			/* We might delete the cell so advance it now. */
 			next = lnext(llc);
 
-			if (namestrcmp(&tablesync->nspname, remoterel->nspname) == 0 &&
-				namestrcmp(&tablesync->relname, remoterel->relname) == 0)
+			if (namestrcmp(&tablesync->nspname, remoterel->nsptarget) == 0 &&
+				namestrcmp(&tablesync->relname, remoterel->reltarget) == 0)
 			{
 				oldsync = tablesync;
 				local_tables = list_delete_cell(local_tables, llc, prev);
@@ -840,13 +840,13 @@ pglogical_alter_subscription_synchronize(PG_FUNCTION_ARGS)
 			memset(&newsync, 0, sizeof(PGLogicalSyncStatus));
 			newsync.kind = SYNC_KIND_DATA;
 			newsync.subid = sub->id;
-			namestrcpy(&newsync.nspname, remoterel->nspname);
-			namestrcpy(&newsync.relname, remoterel->relname);
+			namestrcpy(&newsync.nspname, remoterel->nsptarget);
+			namestrcpy(&newsync.relname, remoterel->reltarget);
 			newsync.status = SYNC_STATUS_INIT;
 			create_local_sync_status(&newsync);
 
 			if (truncate)
-				truncate_table(remoterel->nspname, remoterel->relname);
+				truncate_table(remoterel->nsptarget, remoterel->reltarget);
 		}
 	}
 
@@ -2028,16 +2028,16 @@ pglogical_show_repset_table_info_by_target(PG_FUNCTION_ARGS)
 	char	   *reltarget;
 	TupleDesc	rettupdesc;
 
-	/* Build a tuple descriptor for our result type */
-	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
-		elog(ERROR, "return type must be a row type");
-
 	if (PG_ARGISNULL(0))
 			elog(ERROR,"Schema target name required");
 	nsptarget = NameStr(*PG_GETARG_NAME(0));
 	if (PG_ARGISNULL(1))
 			elog(ERROR,"Table target name required");
 	reltarget = NameStr(*PG_GETARG_NAME(1));
+
+	/* Build a tuple descriptor for our result type */
+	if (get_call_result_type(fcinfo, NULL, &rettupdesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
 
 	target = makeRangeVar(nsptarget, reltarget, -1);
 
