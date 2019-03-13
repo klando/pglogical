@@ -95,16 +95,16 @@ CREATE TABLE pglogical.replication_set_table (
     set_reloid regclass NOT NULL,
     set_att_list text[],
     set_row_filter pg_node_tree,
-    set_nsptarget name,
-    set_reltarget name,
+    set_nsptarget name NOT NULL,
+    set_reltarget name NOT NULL,
     PRIMARY KEY(set_id, set_reloid)
 ) WITH (user_catalog_table=true);
 
 CREATE TABLE pglogical.replication_set_seq (
     set_id oid NOT NULL,
     set_seqoid regclass NOT NULL,
-    set_nsptarget name,
-    set_seqtarget name,
+    set_nsptarget name NOT NULL,
+    set_seqtarget name NOT NULL,
     PRIMARY KEY(set_id, set_seqoid)
 ) WITH (user_catalog_table=true);
 

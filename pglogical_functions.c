@@ -1368,6 +1368,8 @@ pglogical_replication_set_add_table(PG_FUNCTION_ARGS)
 	PGLogicalLocalNode *node;
 	char			   *nspname;
 	char			   *relname;
+	char			   *nsptarget;
+	char			   *reltarget;
 	StringInfoData		json;
 
 	/* Proccess for required parameters. */
@@ -1445,16 +1447,20 @@ pglogical_replication_set_add_table(PG_FUNCTION_ARGS)
 									  text_to_cstring(PG_GETARG_TEXT_PP(4)));
 	}
 
-	replication_set_add_table(repset->id, reloid, att_list, row_filter);
+	nsptarget = pstrdup(nspname);
+	reltarget = pstrdup(relname);
+
+	replication_set_add_table(repset->id, reloid, att_list, row_filter,
+							  nsptarget, reltarget);
 
 	if (synchronize)
 	{
 		/* It's easier to construct json manually than via Jsonb API... */
 		initStringInfo(&json);
 		appendStringInfo(&json, "{\"schema_name\": ");
-		escape_json(&json, nspname);
+		escape_json(&json, nsptarget);
 		appendStringInfo(&json, ",\"table_name\": ");
-		escape_json(&json, relname);
+		escape_json(&json, reltarget);
 		appendStringInfo(&json, "}");
 
 		/* Queue the truncate for replication. */
@@ -1482,6 +1488,8 @@ pglogical_replication_set_add_sequence(PG_FUNCTION_ARGS)
 	PGLogicalLocalNode *node;
 	char			   *nspname;
 	char			   *relname;
+	char			   *nsptarget;
+	char			   *reltarget;
 	StringInfoData		json;
 
 	node = check_local_node(true);
@@ -1496,19 +1504,21 @@ pglogical_replication_set_add_sequence(PG_FUNCTION_ARGS)
 	 */
 	rel = heap_open(reloid, ShareRowExclusiveLock);
 
-	replication_set_add_seq(repset->id, reloid);
+	nspname = get_namespace_name(RelationGetNamespace(rel));
+	relname = RelationGetRelationName(rel);
+	nsptarget = pstrdup(nspname);
+	reltarget = pstrdup(relname);
+
+	replication_set_add_seq(repset->id, reloid, nsptarget, reltarget);
 
 	if (synchronize)
 	{
-		nspname = get_namespace_name(RelationGetNamespace(rel));
-		relname = RelationGetRelationName(rel);
-
 		/* It's easier to construct json manually than via Jsonb API... */
 		initStringInfo(&json);
 		appendStringInfo(&json, "{\"schema_name\": ");
-		escape_json(&json, nspname);
+		escape_json(&json, nsptarget);
 		appendStringInfo(&json, ",\"sequence_name\": ");
-		escape_json(&json, relname);
+		escape_json(&json, reltarget);
         appendStringInfo(&json, ",\"last_value\": \""INT64_FORMAT"\"",
 								 sequence_get_last_value(reloid));
 		appendStringInfo(&json, "}");
@@ -1583,9 +1593,11 @@ pglogical_replication_set_add_all_relations(Name repset_name,
 			if (!list_member_oid(existing_relations, reloid))
 			{
 				if (relkind == RELKIND_RELATION)
-					replication_set_add_table(repset->id, reloid, NIL, NULL);
+					replication_set_add_table(repset->id, reloid, NIL, NULL,
+											  NULL, NULL);
 				else
-					replication_set_add_seq(repset->id, reloid);
+					replication_set_add_seq(repset->id, reloid,
+											NULL, NULL);
 
 				if (synchronize)
 				{
