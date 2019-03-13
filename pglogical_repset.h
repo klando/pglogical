@@ -26,6 +26,14 @@ typedef struct PGLogicalRepSet
 	bool		replicate_truncate;
 } PGLogicalRepSet;
 
+typedef struct PGLogicalRepSetSeq
+{
+	Oid			seqoid;
+	char		*nsptarget;
+	char		*seqtarget;
+	char        *repset_name;
+} PGLogicalRepSetSeq;
+
 #define DEFAULT_REPSET_NAME "default"
 #define DEFAULT_INSONLY_REPSET_NAME "default_insert_only"
 #define DDL_SQL_REPSET_NAME "ddl_sql"
@@ -94,6 +102,8 @@ extern PGDLLEXPORT void replication_set_remove_seq(Oid setid, Oid reloid,
 
 extern List *get_table_replication_sets(Oid nodeid, Oid reloid);
 extern List *get_seq_replication_sets(Oid nodeid, Oid seqoid);
+extern List *get_table_replication_sets_targets(Oid nodeid, Oid reloid);
+extern List *get_seq_replication_sets_targets(Oid nodeid, Oid seqoid);
 
 extern PGLogicalRepSet *replication_set_from_tuple(HeapTuple tuple);
 

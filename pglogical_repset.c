@@ -809,6 +809,52 @@ get_seq_replication_sets(Oid nodeid, Oid seqoid)
 }
 
 List *
+get_seq_replication_sets_targets(Oid nodeid, Oid seqoid)
+{
+	RangeVar	   *rv;
+	Relation		rel;
+	ScanKeyData		key[1];
+	SysScanDesc		scan;
+	HeapTuple		tuple;
+	List		   *seq_targets = NIL;
+
+	Assert(IsTransactionState());
+
+	rv = makeRangeVar(EXTENSION_NAME, CATALOG_REPSET_SEQ, -1);
+	rel = heap_openrv(rv, RowExclusiveLock);
+
+	ScanKeyInit(&key[0],
+				Anum_repset_seq_seqoid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(seqoid));
+
+	/* TODO: use index */
+	scan = systable_beginscan(rel, 0, true, NULL, 1, key);
+
+	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
+	{
+		RepSetSeqTuple	  *t = (RepSetSeqTuple *) GETSTRUCT(tuple);
+		PGLogicalRepSet	  *repset = get_replication_set(t->id);
+		PGLogicalRepSetSeq  *seqtarget;
+
+		if (repset->nodeid != nodeid)
+			continue;
+
+		seqtarget = (PGLogicalRepSetSeq *) palloc(sizeof(PGLogicalRepSetSeq));
+		seqtarget->seqoid = t->seqoid;
+		seqtarget->nsptarget = pstrdup(NameStr(t->nsptarget));
+		seqtarget->seqtarget = pstrdup(NameStr(t->seqtarget));
+		seqtarget->repset_name = pstrdup(repset->name);
+		seq_targets = lappend(seq_targets, seqtarget);
+	}
+
+	systable_endscan(scan);
+	heap_close(rel, RowExclusiveLock);
+
+	return seq_targets;
+}
+
+List *
 get_table_replication_sets_targets(Oid nodeid, Oid reloid)
 {
 	RangeVar	   *rv;
