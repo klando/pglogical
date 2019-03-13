@@ -504,10 +504,10 @@ copy_table_data(PGconn *origin_conn, PGconn *target_conn,
 	/* Build COPY FROM query. */
 	resetStringInfo(&query);
 	appendStringInfo(&query, "COPY %s.%s ",
-					 PQescapeIdentifier(origin_conn, remoterel->nspname,
-										strlen(remoterel->nspname)),
-					 PQescapeIdentifier(origin_conn, remoterel->relname,
-										strlen(remoterel->relname)));
+					 PQescapeIdentifier(target_conn, remoterel->nsptarget,
+										strlen(remoterel->nsptarget)),
+					 PQescapeIdentifier(target_conn, remoterel->reltarget,
+										strlen(remoterel->reltarget)));
 	if (list_length(attnamelist))
 		appendStringInfo(&query, "(%s) ", attlist.data);
 	appendStringInfoString(&query, "FROM stdin");
@@ -848,12 +848,13 @@ pglogical_sync_subscription(PGLogicalSubscription *sub)
 						PGLogicalSyncStatus	   *oldsync;
 
 						oldsync = get_table_sync_status(sub->id,
-														remoterel->nspname,
-														remoterel->relname, true);
+														remoterel->nsptarget,
+														remoterel->reltarget,
+														true);
 						if (oldsync)
 						{
-							set_table_sync_status(sub->id, remoterel->nspname,
-												  remoterel->relname,
+							set_table_sync_status(sub->id, remoterel->nsptarget,
+												  remoterel->reltarget,
 												  SYNC_STATUS_READY,
 												  lsn);
 						}
@@ -863,8 +864,8 @@ pglogical_sync_subscription(PGLogicalSubscription *sub)
 
 							newsync.kind = SYNC_KIND_FULL;
 							newsync.subid = sub->id;
-							namestrcpy(&newsync.nspname, remoterel->nspname);
-							namestrcpy(&newsync.relname, remoterel->relname);
+							namestrcpy(&newsync.nspname, remoterel->nsptarget);
+							namestrcpy(&newsync.relname, remoterel->reltarget);
 							newsync.status = SYNC_STATUS_READY;
 							newsync.statuslsn = lsn;
 							create_local_sync_status(&newsync);
