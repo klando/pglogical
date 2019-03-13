@@ -1447,8 +1447,14 @@ pglogical_replication_set_add_table(PG_FUNCTION_ARGS)
 									  text_to_cstring(PG_GETARG_TEXT_PP(4)));
 	}
 
-	nsptarget = pstrdup(nspname);
-	reltarget = pstrdup(relname);
+	if (!PG_ARGISNULL(5))
+	  nsptarget = NameStr(*PG_GETARG_NAME(5));
+	else
+	  nsptarget = pstrdup(nspname);
+	if (!PG_ARGISNULL(6))
+	  reltarget = NameStr(*PG_GETARG_NAME(6));
+	else
+	  reltarget = pstrdup(relname);
 
 	replication_set_add_table(repset->id, reloid, att_list, row_filter,
 							  nsptarget, reltarget);
@@ -1506,8 +1512,14 @@ pglogical_replication_set_add_sequence(PG_FUNCTION_ARGS)
 
 	nspname = get_namespace_name(RelationGetNamespace(rel));
 	relname = RelationGetRelationName(rel);
-	nsptarget = pstrdup(nspname);
-	reltarget = pstrdup(relname);
+	if (!PG_ARGISNULL(3))
+	    nsptarget = NameStr(*PG_GETARG_NAME(3));
+	else
+	  nsptarget = pstrdup(nspname);
+	if (!PG_ARGISNULL(4))
+		reltarget = NameStr(*PG_GETARG_NAME(4));
+	else
+	  reltarget = pstrdup(relname);
 
 	replication_set_add_seq(repset->id, reloid, nsptarget, reltarget);
 

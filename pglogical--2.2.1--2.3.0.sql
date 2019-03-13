@@ -21,6 +21,16 @@ WHERE c.oid = set_seqoid;
 
 -- a VACUUM FULL of the table above would be nice here.
 
+DROP FUNCTION pglogical.replication_set_add_table(name, regclass, boolean,
+     text[], text);
+CREATE FUNCTION pglogical.replication_set_add_table(set_name name, relation regclass, synchronize_data boolean DEFAULT false,
+	columns text[] DEFAULT NULL, row_filter text DEFAULT NULL, nsptarget name DEFAULT NULL, reltarget name DEFAULT NULL)
+RETURNS boolean CALLED ON NULL INPUT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_replication_set_add_table';
+
+DROP FUNCTION pglogical.replication_set_add_sequence(name, regclass, boolean);
+CREATE FUNCTION pglogical.replication_set_add_sequence(set_name name, relation regclass, synchronize_data boolean DEFAULT false, nsptarget name DEFAULT NULL, reltarget name DEFAULT NULL)
+RETURNS boolean VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_replication_set_add_sequence';
+
 DROP FUNCTION pglogical.show_repset_table_info(regclass, text[]);
 CREATE FUNCTION pglogical.show_repset_table_info(relation regclass, repsets text[], OUT relid oid, OUT nspname text,
 	OUT relname text, OUT att_list text[], OUT has_row_filter boolean, OUT nsptarget text, OUT reltarget text)
