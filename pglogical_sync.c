@@ -588,6 +588,8 @@ copy_tables_data(char *sub_name, const char *origin_dsn,
 		RangeVar	*rv = lfirst(lc);
 		PGLogicalRemoteRel	*remoterel;
 
+		/* XXX shouldn't it require to have the transaction bound to a snapshot
+		 * to get the content of catalog table ? */
 		remoterel = pg_logical_get_remote_repset_table(origin_conn, rv,
 													   replication_sets);
 
