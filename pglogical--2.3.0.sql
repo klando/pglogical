@@ -57,10 +57,6 @@ CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_d
 	    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure text = 'none',
 	    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
 RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_create_subscription';
-CREATE FUNCTION pglogical.create_subscription(subscription_name name, provider_dsn text,
-    replication_sets text[] = '{default,default_insert_only,ddl_sql}', synchronize_structure boolean = false,
-    synchronize_data boolean = true, forward_origins text[] = '{all}', apply_delay interval DEFAULT '0')
-RETURNS oid STRICT VOLATILE LANGUAGE SQL AS 'select pglogical.create_subscription($1,$2,$3, case when $4 is true then ''all'' else ''none'' end ,$5,$6,$7)';
 
 CREATE FUNCTION pglogical.drop_subscription(subscription_name name, ifexists boolean DEFAULT false)
 RETURNS oid STRICT VOLATILE LANGUAGE c AS 'MODULE_PATHNAME', 'pglogical_drop_subscription';

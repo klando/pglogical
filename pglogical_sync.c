@@ -619,10 +619,10 @@ list_replication_sets_objects(const char *dsn, const char *name, const char *sna
 
 		initStringInfo(&object);
 		appendStringInfo(&object, "%s.%s",
-						 PQescapeLiteral(origin_conn, remoterel->nspname,
-											strlen(remoterel->nspname)),
-						 PQescapeLiteral(origin_conn, remoterel->relname,
-											strlen(remoterel->relname)));
+						 PQescapeLiteral(origin_conn, remoterel->nsptarget,
+											strlen(remoterel->nsptarget)),
+						 PQescapeLiteral(origin_conn, remoterel->reltarget,
+											strlen(remoterel->reltarget)));
 		res = lappend(res, object.data);
 
 		/* XXX probably not required here */

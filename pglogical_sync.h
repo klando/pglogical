@@ -38,10 +38,10 @@ typedef struct PGLogicalSyncStatus
 #define SYNC_KIND_DATA		'd'
 
 #define SyncKindData(kind) \
-	(kind == SYNC_KIND_FULL || SYNC_KIND_FULL_REL || kind == SYNC_KIND_DATA)
+	(kind == SYNC_KIND_FULL || kind == SYNC_KIND_FULL_REL || kind == SYNC_KIND_DATA)
 
 #define SyncKindStructure(kind) \
-	(kind == SYNC_KIND_FULL || SYNC_KIND_FULL_REL || kind == SYNC_KIND_STRUCTURE || kind == SYNC_KIND_STRUCTURE_REL)
+	(kind == SYNC_KIND_FULL || kind == SYNC_KIND_FULL_REL || kind == SYNC_KIND_STRUCTURE || kind == SYNC_KIND_STRUCTURE_REL)
 
 #define SyncKindStructureRelations(kind) \
 	(kind == SYNC_KIND_FULL_REL || kind == SYNC_KIND_STRUCTURE_REL)

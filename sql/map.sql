@@ -32,7 +32,7 @@ SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
 SELECT * FROM pglogical.create_subscription(
     subscription_name := 'test_map1',
     provider_dsn := (SELECT provider_dsn FROM pglogical_regress_variables()) || ' user=super',
-	synchronize_structure := false,
+	synchronize_structure := 'none',
 	forward_origins := '{}',
         replication_sets := '{map1}');
 SELECT pglogical.wait_for_subscription_sync_complete('test_map1');
@@ -63,7 +63,7 @@ SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
 SELECT * FROM pglogical.create_subscription(
     subscription_name := 'test_map2',
     provider_dsn := (SELECT provider_dsn FROM pglogical_regress_variables()) || ' user=super',
-	synchronize_structure := false,
+	synchronize_structure := 'none',
 	forward_origins := '{}',
         replication_sets := '{map2}');
 SELECT pglogical.wait_for_subscription_sync_complete('test_map2');
