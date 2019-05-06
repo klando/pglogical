@@ -629,8 +629,27 @@ list_replication_sets_objects(const char *dsn, const char *name, const char *sna
 		CHECK_FOR_INTERRUPTS();
 	}
 
-	/* TODO add list of sequences, require a
-	   pg_logical_get_remote_repset_sequences() */
+	/* Get sequences from our replication sets from origin node. */
+	objects = pg_logical_get_remote_repset_sequences(origin_conn,
+												 replication_sets);
+
+	/* And append them to the list */
+	foreach (lc, objects)
+	{
+		RangeVar	*rv = lfirst(lc);
+		StringInfoData object;
+
+		initStringInfo(&object);
+		appendStringInfo(&object, "%s.%s",
+				 PQescapeLiteral(origin_conn, rv->schemaname,
+											strlen(rv->schemaname)),
+						 PQescapeLiteral(origin_conn, rv->relname,
+											strlen(rv->relname)));
+		res = lappend(res, object.data);
+
+		/* XXX probably not required here */
+		CHECK_FOR_INTERRUPTS();
+	}
 
 	/* Finish the transaction and disconnect. */
 	finish_copy_origin_tx(origin_conn);
